@@ -4,92 +4,181 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>A* Pathfinding Visualization</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+
   <style>
+    :root {
+      --dark-red: #6D120B;
+      --red: #d22929;
+      --light-bg: #FBF0D8;
+      --navy: #1a4566;
+      --blue: #739AB9;
+
+      --non-walkable: #877d66;
+    }
+
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Lexend';
       display: flex;
       flex-direction: column;
       align-items: center;
+      background-color: var(--light-bg);
       margin: 0;
       padding: 0;
     }
+
     h1 {
-      margin: 20px 0;
+      margin: 25px 0;
+      padding: 5px 50px;
+      border-radius: 10px;
+      background-color: var(--non-walkable);
+      color: white;
     }
+
     #grid {
       display: grid;
-      grid-template-columns: repeat(10, 40px);
-      grid-template-rows: repeat(10, 40px);
-      grid-gap: 2px;
+      grid-template-columns: repeat(10, 60px);
+      grid-template-rows: repeat(10, 60px);
+      grid-gap: 0px;
+      margin: 10px 0;
     }
+
+    #info-panel {
+      background-color: var(--non-walkable);
+      color: white;
+      padding: 10px 20px;
+      position: absolute;
+      margin-top: 300px;
+      margin-left: 950px;
+      border-radius: 10px;
+
+      h2 {
+        padding-bottom: 10px;
+      }
+    }
+
     .cell {
       position: relative;
-      width: 40px;
-      height: 40px;
-      border: 1px solid #ccc;
-      background-color: #eee;
+      width: 60px;
+      height: 60px;
+      border: 1px solid var(--non-walkable);
+      background-color: var(--light-bg);
       display: flex;
       justify-content: center;
       align-items: center;
-      font-size: 10px;
+      font-size: 14px;
       text-align: center;
       color: black;
     }
+
     .cell .cost {
       position: absolute;
-      font-size: 8px;
+      font-size: 10px;
     }
+
     .g-cost {
-      top: 2px;
-      left: 2px;
+      top: 4px;
+      left: 4px;
     }
+
     .h-cost {
-      top: 2px;
-      right: 2px;
+      top: 4px;
+      right: 4px;
     }
+
     .f-cost {
-      font-size: 14px;
+      font-size: 16px;
     }
+
     .start {
-      background-color: #4caf50;
+      background-color: var(--navy);
+      color: white;
     }
+
     .target {
-      background-color: #f44336;
+      background-color: var(--red);
+      color: white;
     }
+
     .path {
-      background-color: #2196f3;
+      background-color: var(--blue);
+      color: white;
     }
+
     .closed {
-      background-color: #ef9a9a;
+      background-color: #000;
     }
+
     .open {
-      background-color: #a5d6a7;
+      background-color: #269e2a;
     }
+
     .non-walkable {
-      background-color: #555;
+      background-color: var(--non-walkable);
+      color: white;
     }
+
     button {
+      font-family: 'Lexend';
       margin-top: 20px;
       padding: 10px 20px;
       font-size: 16px;
+      outline: none;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-weight: 600;
+      transition: all 0.3s ease-out;
+    }
+
+    #startBtn {
+      background-color: var(--navy);
+
+      &:hover {
+        background-color: var(--blue);
+      }
+    }
+
+    #changeGridBtn {
+      background-color: var(--dark-red);
+      margin-bottom: 20px;
+
+      &:hover {
+        background-color: var(--red);
+      }
     }
   </style>
 </head>
 <body>
   <h1>A* Pathfinding Visualization</h1>
   <script src="astar.js"></script>
+
   <div id="grid"></div>
+
+  <div id="info-panel">
+    <h2>Path Information</h2>
+    <p><strong>Shortest Steps:</strong> <span id="shortest-steps">N/A</span></p>
+    <p><strong>Recent Steps:</strong> <span id="recent-steps">N/A</span></p>
+  </div>
+  
   <button id="startBtn">Find Path</button>
   <button id="changeGridBtn">Change Grid</button>
 
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
   <script>
     let gridData = generateRandomGrid();
+
+    let shortestSteps = Infinity; // To keep track of the shortest steps found
 
     const startNode = { x: 0, y: 0 };
     const targetNode = { x: 9, y: 9 };
 
     const gridElement = document.getElementById('grid');
-    gridElement.style.gridTemplateColumns = `repeat(${gridData[0].length}, 40px)`;
+    gridElement.style.gridTemplateColumns = `repeat(${gridData[0].length}, 60px)`;
 
     // Render the grid with cost values and obstacles
     function renderGrid() {
@@ -159,10 +248,45 @@
     // Add event listener for Find Path button
     document.getElementById('startBtn').addEventListener('click', async () => {
       const path = aStar(gridData, startNode, targetNode);
-      if (path.length > 0) {
+      const recentStepsCount = path.length;
+
+      if (recentStepsCount > 0) {
         await visualizePath(path);
+
+        // Update the recent steps and check if it's the shortest path
+        document.getElementById('recent-steps').textContent = recentStepsCount;
+
+        if (recentStepsCount < shortestSteps) {
+          shortestSteps = recentStepsCount;
+          document.getElementById('shortest-steps').textContent = shortestSteps;
+        }
+        Swal.fire({
+          title: 'Path Found!',
+          text: `The path was found in ${path.length} steps.`,
+          icon: 'success',
+          confirmButtonText: 'Great!',
+          confirmButtonColor: "#1a4566",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            // Optional: Refresh the grid after the user confirms
+            gridData = generateRandomGrid(); // Generate new random grid
+            renderGrid();  // Re-render the grid with new data
+          }
+        });
       } else {
-        alert('No path found!');
+        Swal.fire({
+          title: 'Oops!',
+          text: 'No path found!',
+          icon: 'error',
+          confirmButtonText: 'Change Grid',
+          confirmButtonColor: "#6D120B",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            // Refresh the grid
+            gridData = generateRandomGrid(); // Generate new random grid
+            renderGrid();  // Re-render the grid with new data
+          }
+        });
       }
     });
 
@@ -209,7 +333,7 @@
                   temp = cameFrom.get(key(temp));
               }
               if (visualizeStep) {
-                  console.log("Path found! Total steps:", steps);
+                console.log("Path found! Total steps:", steps);
               }
               return path;
           }
