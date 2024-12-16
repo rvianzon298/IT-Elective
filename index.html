@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A* Pathfinding Visualization</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      margin: 20px 0;
+    }
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(10, 40px);
+      grid-template-rows: repeat(10, 40px);
+      grid-gap: 2px;
+    }
+    .cell {
+      position: relative;
+      width: 40px;
+      height: 40px;
+      border: 1px solid #ccc;
+      background-color: #eee;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 10px;
+      text-align: center;
+      color: black;
+    }
+    .cell .cost {
+      position: absolute;
+      font-size: 8px;
+    }
+    .g-cost {
+      top: 2px;
+      left: 2px;
+    }
+    .h-cost {
+      top: 2px;
+      right: 2px;
+    }
+    .f-cost {
+      font-size: 14px;
+    }
+    .start {
+      background-color: #4caf50;
+    }
+    .target {
+      background-color: #f44336;
+    }
+    .path {
+      background-color: #2196f3;
+    }
+    .closed {
+      background-color: #ef9a9a;
+    }
+    .open {
+      background-color: #a5d6a7;
+    }
+    .non-walkable {
+      background-color: #555;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>A* Pathfinding Visualization</h1>
+  <script src="astar.js"></script>
+  <div id="grid"></div>
+  <button id="startBtn">Find Path</button>
+  <button id="changeGridBtn">Change Grid</button>
+
+  <script>
+    let gridData = generateRandomGrid();
+
+    const startNode = { x: 0, y: 0 };
+    const targetNode = { x: 9, y: 9 };
+
+    const gridElement = document.getElementById('grid');
+    gridElement.style.gridTemplateColumns = `repeat(${gridData[0].length}, 40px)`;
+
+    // Render the grid with cost values and obstacles
+    function renderGrid() {
+      gridElement.innerHTML = '';
+      gridData.forEach((row, x) => {
+        row.forEach((cell, y) => {
+          const cellDiv = document.createElement('div');
+          cellDiv.classList.add('cell');
+          
+          // Displaying the G, H, and F costs
+          const gCost = 10;  // Example, replace with actual g-cost calculation
+          const hCost = Math.abs(x - targetNode.x) + Math.abs(y - targetNode.y);  // Manhattan heuristic
+          const fCost = gCost + hCost;
+
+          // Add cost values to the cell
+          const gCostDiv = document.createElement('div');
+          gCostDiv.classList.add('cost', 'g-cost');
+          gCostDiv.textContent = gCost;
+          
+          const hCostDiv = document.createElement('div');
+          hCostDiv.classList.add('cost', 'h-cost');
+          hCostDiv.textContent = hCost;
+          
+          const fCostDiv = document.createElement('div');
+          fCostDiv.classList.add('cost', 'f-cost');
+          fCostDiv.textContent = fCost;
+
+          // Append the cost divs
+          cellDiv.appendChild(gCostDiv);
+          cellDiv.appendChild(hCostDiv);
+          cellDiv.appendChild(fCostDiv);
+
+          // Handle walkable vs non-walkable cells
+          if (cell === 1) {
+            cellDiv.classList.add('non-walkable');  // Display obstacles
+          } else {
+            // Highlight start and target nodes
+            if (x === startNode.x && y === startNode.y) cellDiv.classList.add('start');
+            if (x === targetNode.x && y === targetNode.y) cellDiv.classList.add('target');
+          }
+
+          cellDiv.dataset.x = x;
+          cellDiv.dataset.y = y;
+          gridElement.appendChild(cellDiv);
+        });
+      });
+    }
+
+    renderGrid();
+
+    // Function to generate a new random grid
+    function generateRandomGrid() {
+      return Array.from({ length: 10 }, () => 
+        Array.from({ length: 10 }, () => Math.random() > 0.2 ? 0 : 1)  // 80% walkable, 20% obstacles
+      );
+    }
+
+    // Visualize the pathfinding
+    async function visualizePath(path) {
+      for (const node of path) {
+        const cell = document.querySelector(`[data-x="${node.x}"][data-y="${node.y}"]`);
+        cell.classList.add('path');
+        await new Promise(res => setTimeout(res, 100));
+      }
+    }
+
+    // Add event listener for Find Path button
+    document.getElementById('startBtn').addEventListener('click', async () => {
+      const path = aStar(gridData, startNode, targetNode);
+      if (path.length > 0) {
+        await visualizePath(path);
+      } else {
+        alert('No path found!');
+      }
+    });
+
+    // Add event listener for Change Grid button
+    document.getElementById('changeGridBtn').addEventListener('click', () => {
+      gridData = generateRandomGrid(); // Generate new random grid
+      renderGrid();  // Re-render the grid with new data
+    });
+
+    // --- A* Pathfinding Implementation with Diagonal Movement ---
+    function aStar(grid, start, target, visualizeStep = false) {
+      // Heuristic: Chebyshev distance
+      function heuristic(nodeA, nodeB) {
+          return Math.max(Math.abs(nodeA.x - nodeB.x), Math.abs(nodeA.y - nodeB.y));
+      }
+
+      // Clear all lists and maps for a fresh start
+      const openList = []; // Nodes to evaluate
+      const closedList = new Set(); // Nodes already evaluated
+      const cameFrom = new Map(); // For reconstructing the path later
+
+      const gScore = new Map(); // Cost from start to a node
+      const fScore = new Map(); // Estimated total cost (g + h)
+
+      const key = node => `${node.x},${node.y}`; // Unique identifier for a node
+
+      openList.push(start); // Add start node to the open list
+      gScore.set(key(start), 0); // Start node has g cost of 0
+      fScore.set(key(start), heuristic(start, target)); // Initial estimate to the target
+
+      let steps = 0;
+
+      while (openList.length > 0) {
+          // Find the node with the lowest F cost
+          openList.sort((a, b) => fScore.get(key(a)) - fScore.get(key(b)));
+          const current = openList.shift();
+
+          // If the target is reached, reconstruct the path
+          if (current.x === target.x && current.y === target.y) {
+              const path = [];
+              let temp = current;
+              while (temp) {
+                  path.unshift(temp);
+                  temp = cameFrom.get(key(temp));
+              }
+              if (visualizeStep) {
+                  console.log("Path found! Total steps:", steps);
+              }
+              return path;
+          }
+
+          // Move current node to closed list
+          closedList.add(key(current));
+
+          // Process neighbors
+          for (const neighbor of getNeighbors(grid, current)) {
+              if (closedList.has(key(neighbor)) || grid[neighbor.x][neighbor.y] === 1) {
+                  continue; // Skip obstacles or already evaluated nodes
+              }
+
+              const diagonalCost = 14;
+              const horizontalCost = 10;
+              const tentativeGScore = gScore.get(key(current)) + 
+                (Math.abs(current.x - neighbor.x) === 1 && Math.abs(current.y - neighbor.y) === 1 ? diagonalCost : horizontalCost);
+
+              if (!openList.some(n => n.x === neighbor.x && n.y === neighbor.y)) {
+                  openList.push(neighbor); // Add neighbor to open list
+              } else if (tentativeGScore >= (gScore.get(key(neighbor)) || Infinity)) {
+                  continue; // Skip if the current path is not better
+              }
+
+              // Update neighbor's scores and parent reference
+              cameFrom.set(key(neighbor), current);
+              gScore.set(key(neighbor), tentativeGScore);
+              fScore.set(key(neighbor), tentativeGScore + heuristic(neighbor, target));
+          }
+
+          // Optionally visualize the step-by-step process
+          if (visualizeStep) {
+              steps++;
+              console.log(`Step ${steps}:`);
+              printGrid(grid, closedList, openList, current);
+          }
+      }
+
+      // Return empty array if no path is found
+      return [];
+    }
+
+    // Helper to get neighbors (including diagonal)
+    function getNeighbors(grid, node) {
+      const directions = [
+        { x: -1, y: 0 },  // Up
+        { x: 1, y: 0 },   // Down
+        { x: 0, y: -1 },  // Left
+        { x: 0, y: 1 },   // Right
+        { x: -1, y: -1 }, // Top-left diagonal
+        { x: 1, y: -1 },  // Top-right diagonal
+        { x: -1, y: 1 },  // Bottom-left diagonal
+        { x: 1, y: 1 }    // Bottom-right diagonal
+      ];
+
+      const neighbors = [];
+      for (const dir of directions) {
+          const newX = node.x + dir.x;
+          const newY = node.y + dir.y;
+
+          if (newX >= 0 && newX < grid.length && newY >= 0 && newY < grid[0].length) {
+              neighbors.push({ x: newX, y: newY });
+          }
+      }
+      return neighbors;
+    }
+
+  </script>
+</body>
+</html>
