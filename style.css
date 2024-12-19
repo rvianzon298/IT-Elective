@@ -1,0 +1,152 @@
+:root {
+    --dark-red: #6D120B;
+    --red: #d22929;
+    --light-bg: #FBF0D8;
+    --navy: #1a4566;
+    --blue: #739AB9;
+
+    --non-walkable: #877d66;
+  }
+
+  body {
+    font-family: 'Lexend';
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: var(--light-bg);
+    margin: 0;
+    padding: 0;
+  }
+
+  h1 {
+    margin: 25px 0;
+    padding: 5px 50px;
+    border-radius: 10px;
+    background-color: var(--non-walkable);
+    color: white;
+  }
+
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(10, 60px);
+    grid-template-rows: repeat(10, 60px);
+    grid-gap: 0px;
+    margin: 10px 0;
+  }
+
+  #info-panel {
+    background-color: var(--non-walkable);
+    color: white;
+    padding: 10px 20px;
+    position: absolute;
+    margin-top: 300px;
+    margin-left: 950px;
+    border-radius: 10px;
+
+    h2 {
+      padding-bottom: 10px;
+    }
+  }
+
+  .cell {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    border: 1px solid var(--non-walkable);
+    background-color: var(--light-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 14px;
+    text-align: center;
+    color: black;
+  }
+
+  .cell .cost {
+    position: absolute;
+    font-size: 10px;
+  }
+
+  .g-cost {
+    top: 4px;
+    left: 4px;
+
+  }
+
+  .h-cost {
+    top: 4px;
+    right: 4px;
+    
+  }
+
+  .f-cost {
+    font-size: 16px;
+
+  }
+
+
+  .start {
+    background-color: #269e2a;
+    background-size: cover;
+    background-position: center;
+    color: rgb(0, 0, 0);
+  }
+
+  .target {
+    background-color: #d22929;
+    background-size: cover;
+    background-position: center;
+    color: rgb(11, 11, 11);
+  }
+
+  .path {
+    background-color: var(--blue);
+    color: rgb(13, 13, 13);
+  }
+
+  .closed {
+    background-color: #000;
+  }
+
+  .open {
+    background-color: #269e2a;
+  }
+
+  .non-walkable {
+    background-color: var(--non-walkable);
+    color: rgb(1, 1, 1);
+  }
+
+  button {
+    font-family: 'Lexend';
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 16px;
+    outline: none;
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-weight: 600;
+    transition: all 0.3s ease-out;
+  }
+
+  #startBtn {
+    margin-top: -13%;
+    margin-left: 47.5%;
+    background-color: var(--navy);
+
+    &:hover {
+      background-color: var(--blue);
+    }
+  }
+
+  #changeGridBtn {
+    margin-top: -2.3%;
+    margin-left: 65%;
+    background-color: var(--dark-red);
+
+
+    &:hover {
+      background-color: var(--red);
+    }
+  }
